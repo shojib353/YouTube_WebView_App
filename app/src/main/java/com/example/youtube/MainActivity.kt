@@ -5,6 +5,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -13,10 +15,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var myWebView: WebView
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var handler:Handler
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -29,16 +36,45 @@ class MainActivity : AppCompatActivity() {
 
 
         myWebView = findViewById(R.id.webview)
+        swipeRefreshLayout = findViewById(R.id.swipeContainer)
         val webSettings: WebSettings = myWebView.settings
-        webSettings.javaScriptEnabled = true // Enable JavaScript if needed
+        webSettings.javaScriptEnabled = true // Enable JavaScript if needed'
 
+        handler = Handler(Looper.getMainLooper())
+
+        myWebView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                swipeRefreshLayout.isRefreshing = false
+
+            }
+        }
+        loadWebPage()
+
+        swipeRefreshLayout.setOnRefreshListener {
+            loadWebPage()
+        }
+
+
+
+    }
+
+    private fun loadWebPage(){
         if (isNetworkAvailable()) {
             myWebView.webViewClient = WebViewClient() // Ensures links open within the WebView
             myWebView.loadUrl("https://www.youtube.com") // Replace with your URL
+
+            handler.postDelayed({
+                // Code to be executed after delay
+                // Replace this with your function call
+                swipeRefreshLayout.isRefreshing = false
+            }, 5000)
+
         } else {
             Toast.makeText(this, "No internet connection", Toast.LENGTH_LONG).show()
             // Optionally, you can load a local HTML file or a custom offline page
             myWebView.loadUrl("file:///example/offline.html")
+            swipeRefreshLayout.isRefreshing = false
         }
     }
 
