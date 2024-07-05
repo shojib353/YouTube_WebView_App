@@ -1,23 +1,29 @@
 package com.example.youtube
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -36,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private var isFullscreen: Boolean = false
 
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -57,13 +64,92 @@ class MainActivity : AppCompatActivity() {
 
         handler = Handler(Looper.getMainLooper())
 
+
+
+
+
+
         myWebView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 swipeRefreshLayout.isRefreshing = false
 
             }
+
+            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                return handleCustomScheme(url)
+            }
+
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                return handleCustomScheme(request.url.toString())
+            }
+            private fun handleCustomScheme(url: String): Boolean {
+                Log.d("WebViewApp", "Handling URL: $url")
+
+                if (url.startsWith("https://youtube.com/")
+                    || url.startsWith("http://youtube.com/") || url.startsWith("intent:")){
+                    var url2:String=url.removePrefix("intent://")
+
+                    url2="https://"+url2
+
+
+                    Toast.makeText(this@MainActivity, myWebView.url +"web view"
+                            , Toast.LENGTH_LONG).show()
+
+                  //  val intent3 = Intent(this@MainActivity, MainActivity::class.java)
+                  //  startActivity(intent3)
+
+                    refreshCurrentPage()
+                    //optional useing this
+                    val intent2 = Intent(Intent.ACTION_VIEW, Uri.parse(url2))
+                    intent.`package` = "com.google.android.youtube"
+                    startActivity(intent2)
+
+
+
+                }
+
+                else if (url.startsWith("tel:") || url.startsWith("mailto:")
+                    || url.startsWith("geo:") || url.startsWith("iintent:")) {
+                    try {
+
+
+
+
+
+                      /*  val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        val chooserIntent = Intent.createChooser(intent, "Open with")
+
+                        // Add additional options for the chooser
+                        val chromeIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        chromeIntent.`package` = "com.android.chrome"
+
+                        val youtubeIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        youtubeIntent.`package` = "com.google.android.youtube"
+
+                        chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS,
+                            arrayOf(chromeIntent, youtubeIntent))  */
+                        Toast.makeText(this@MainActivity, "try block" +
+                                url, Toast.LENGTH_LONG).show()
+
+
+
+                       // startActivity(chooserIntent)
+                    } catch (e: Exception) {
+                        Toast.makeText(this@MainActivity, "No application can handle this request. Please install a web browser or check your URL.", Toast.LENGTH_LONG).show()
+                        e.printStackTrace()
+                    }
+                    return true
+                }
+                return false
+            }
         }
+
+
+
+
+
+
 
 
 
@@ -117,6 +203,9 @@ class MainActivity : AppCompatActivity() {
 
 
         loadWebPage("https://www.youtube.com")
+        myWebView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            swipeRefreshLayout.isEnabled = scrollY == 0
+        }
 
         swipeRefreshLayout.setOnRefreshListener {
             refreshCurrentPage()
@@ -188,7 +277,6 @@ class MainActivity : AppCompatActivity() {
             super.onBackPressed()
         }
     }
-
 
 
 
